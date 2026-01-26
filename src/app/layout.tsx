@@ -1,25 +1,24 @@
-'use client';
-
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/bottom-nav";
-import { Sidebar } from "@/components/layout/sidebar";
 import { SyncStatus } from "@/components/layout/sync-status";
 import { AuthProvider } from "@/components/providers/session-provider";
-import { useState } from "react";
-import { AddHabitModal } from "@/components/habits/add-habit-modal";
 import { ReminderManager } from "@/components/habits/reminder-manager";
 import { MobileHeader } from "@/components/layout/mobile-header";
+import { ClientLayoutProvider } from "@/components/providers/client-layout-provider";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata = {
+  title: "Ritual - Master Your Habits",
+  description: "A premium habit tracking experience.",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen bg-[#09090b] text-foreground`}>
@@ -30,8 +29,7 @@ export default function RootLayout({
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full" />
           </div>
 
-          <div className="flex min-h-screen">
-            <Sidebar onAddClick={() => setIsModalOpen(true)} />
+          <ClientLayoutProvider>
             <ReminderManager />
             <MobileHeader />
 
@@ -41,10 +39,9 @@ export default function RootLayout({
                 {children}
               </div>
             </main>
-          </div>
+          </ClientLayoutProvider>
 
           <BottomNav />
-          <AddHabitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </AuthProvider>
       </body>
     </html>

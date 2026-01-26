@@ -3,10 +3,10 @@
 import { format } from 'date-fns';
 import { HabitCard } from '@/components/habits/habit-card';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getHabits, logHabit, deleteHabit } from '@/lib/actions/habit-actions';
 import { useSession } from "next-auth/react";
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import confetti from 'canvas-confetti';
 
 const MOTIVATIONAL_QUOTES = [
@@ -21,13 +21,14 @@ const MOTIVATIONAL_QUOTES = [
 
 export default function TodayPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [habits, setHabits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState("");
   const confettiFired = useRef(false);
 
-  const today = new Date();
-  const dateStr = format(today, 'yyyy-MM-dd');
+  const today = useMemo(() => new Date(), []);
+  const dateStr = useMemo(() => format(today, 'yyyy-MM-dd'), [today]);
 
   useEffect(() => {
     setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
@@ -35,9 +36,9 @@ export default function TodayPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      redirect("/login");
+      router.push("/login");
     }
-  }, [status]);
+  }, [status, router]);
 
   const load = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -53,7 +54,7 @@ export default function TodayPage() {
     } finally {
       setLoading(false);
     }
-  }, [session, dateStr]);
+  }, [session?.user?.id, dateStr]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -61,11 +62,21 @@ export default function TodayPage() {
       window.addEventListener('habits-updated', load);
       return () => window.removeEventListener('habits-updated', load);
     }
-  }, [session, load]);
+  }, [session?.user?.id, load]);
 
-  const completionPercentage = habits.length > 0
-    ? Math.round((habits.filter(h => h.completedToday).length / habits.length) * 100)
-    : 0;
+  const { remainingHabits, completedHabits, completionPercentage } = useMemo(() => {
+    const remaining = habits.filter(h => !h.completedToday);
+    const completed = habits.filter(h => h.completedToday);
+    const percentage = habits.length > 0
+      ? Math.round((completed.length / habits.length) * 100)
+      : 0;
+
+    return {
+      remainingHabits: remaining,
+      completedHabits: completed,
+      completionPercentage: percentage
+    };
+  }, [habits]);
 
   useEffect(() => {
     if (completionPercentage === 100 && habits.length > 0 && !confettiFired.current) {
@@ -175,13 +186,13 @@ export default function TodayPage() {
             </div>
           )}
 
-          {habits.filter(h => !h.completedToday).length > 0 && (
+          {remainingHabits.length > 0 && (
             <div className="flex flex-col gap-4">
               <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] pl-2">
                 Rituals Remaining
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {habits.filter(h => !h.completedToday).map((habit) => (
+                {remainingHabits.map((habit) => (
                   <HabitCard
                     key={habit.id}
                     id={habit.id}
@@ -197,13 +208,13 @@ export default function TodayPage() {
             </div>
           )}
 
-          {habits.filter(h => h.completedToday).length > 0 && (
+          {completedHabits.length > 0 && (
             <div className="flex flex-col gap-4">
               <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] pl-2">
                 Mastered Today
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {habits.filter(h => h.completedToday).map((habit) => (
+                {completedHabits.map((habit) => (
                   <HabitCard
                     key={habit.id}
                     id={habit.id}

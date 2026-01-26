@@ -28,7 +28,6 @@ export function HabitCard({ name, streak, completedToday, onToggle, onDelete, co
 
     return (
         <motion.div
-            layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="habit-card group bg-card p-4 rounded-3xl border border-white/5 shadow-xl"
