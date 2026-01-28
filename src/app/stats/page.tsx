@@ -8,12 +8,14 @@ import { getStats } from '@/lib/actions/stats-actions';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { CustomDropdown } from '@/components/ui/custom-dropdown';
+import { eachDayOfInterval, startOfYear, endOfYear, format, isToday, startOfWeek, endOfWeek, eachMonthOfInterval, parseISO } from 'date-fns';
 
 export default function StatsPage() {
     const { data: session } = useSession();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+    const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
     useEffect(() => {
         if (!session?.user?.id) return;
@@ -47,6 +49,8 @@ export default function StatsPage() {
     const longestStreak = currentHabitStats ? currentHabitStats.longestStreak : stats.longestStreak;
     const title = currentHabitStats ? currentHabitStats.name : 'Overall Performance';
     const habitColor = currentHabitStats ? currentHabitStats.color : undefined;
+
+    const selectedDayData = (selectedDay && stats.dailyDetails) ? stats.dailyDetails[selectedDay] : null;
 
     const dropdownOptions = [
         { id: null, name: 'Overall Performance' },
@@ -107,8 +111,57 @@ export default function StatsPage() {
                             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{title} Heatmap</h2>
                         </div>
                         <div className="bg-card p-1 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden">
-                            <Heatmap data={heatmapData} color={habitColor} />
+                            <Heatmap
+                                data={heatmapData}
+                                color={habitColor}
+                                onDayClick={(date: Date) => setSelectedDay(format(date, 'yyyy-MM-dd'))}
+                                selectedDay={selectedDay}
+                            />
                         </div>
+
+                        <AnimatePresence>
+                            {selectedDay && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mt-8 overflow-hidden"
+                                >
+                                    <div className="bg-card border border-white/5 rounded-[2.5rem] p-8 shadow-xl">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div>
+                                                <h3 className="text-2xl font-black tracking-tight">{format(parseISO(selectedDay), 'MMMM do, yyyy')}</h3>
+                                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">{format(parseISO(selectedDay), 'EEEE')}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setSelectedDay(null)}
+                                                className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                                            >
+                                                Clear Selection
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {selectedDayData && selectedDayData.length > 0 ? (
+                                                selectedDayData.map((habit: any) => (
+                                                    <div key={habit.id} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 group hover:bg-white/10 transition-all">
+                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: habit.color, boxShadow: `0 0 10px ${habit.color}` }} />
+                                                        <span className="font-bold flex-1">{habit.name}</span>
+                                                        <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                                                            Completed
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-10 text-muted-foreground font-medium italic">
+                                                    No rituals logged on this day.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </section>
                 </motion.div>
             </AnimatePresence>

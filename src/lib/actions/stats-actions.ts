@@ -74,6 +74,7 @@ export async function getStats(userId: string) {
     // Aggregate ALL logs by date for global heatmap
     const heatmapData: Record<string, number> = {};
     const habitStats: Record<string, any> = {};
+    const dailyDetails: Record<string, { id: string, name: string, color: string }[]> = {};
 
     let earlyLogs = 0;
     let lateLogs = 0;
@@ -81,6 +82,15 @@ export async function getStats(userId: string) {
     logs.forEach((log: any) => {
         const dateKey = log.date;
         heatmapData[dateKey] = (heatmapData[dateKey] || 0) + 1;
+
+        if (!dailyDetails[dateKey]) {
+            dailyDetails[dateKey] = [];
+        }
+        dailyDetails[dateKey].push({
+            id: log.habitId,
+            name: log.habit.name,
+            color: log.habit.color
+        });
 
         // Check hour for Dawn Breaker / Night Owl
         const hour = new Date(log.createdAt).getHours();
@@ -121,6 +131,7 @@ export async function getStats(userId: string) {
     return {
         heatmapData,
         habitStats,
+        dailyDetails,
         currentStreak,
         longestStreak,
         totalHabits: habits.length,

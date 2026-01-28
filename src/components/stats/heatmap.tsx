@@ -7,9 +7,11 @@ import { eachDayOfInterval, startOfYear, endOfYear, format, isToday, startOfWeek
 interface HeatmapProps {
     data: Record<string, number>; // YYYY-MM-DD -> completion count or binary
     color?: string; // Optional primary color for the heatmap
+    onDayClick?: (date: Date) => void;
+    selectedDay?: string | null;
 }
 
-export function Heatmap({ data, color }: HeatmapProps) {
+export function Heatmap({ data, color, onDayClick, selectedDay }: HeatmapProps) {
     const yearStart = startOfYear(new Date());
     const yearEnd = endOfWeek(endOfYear(new Date())); // Ensure we get full weeks
     const calendarStart = startOfWeek(yearStart);
@@ -79,6 +81,7 @@ export function Heatmap({ data, color }: HeatmapProps) {
                             const dateKey = format(day, 'yyyy-MM-dd');
                             const value = data[dateKey] || 0;
                             const isCurrentYear = day >= yearStart && day <= yearEnd;
+                            const isSelected = selectedDay === dateKey;
 
                             return (
                                 <motion.div
@@ -86,18 +89,22 @@ export function Heatmap({ data, color }: HeatmapProps) {
                                     initial={{ opacity: 0, scale: 0 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: idx * 0.001, duration: 0.2 }}
+                                    onClick={() => onDayClick?.(day)}
                                     className={cn(
-                                        "w-3 h-3 rounded-sm transition-all duration-300",
-                                        !isCurrentYear && "opacity-0",
+                                        "w-3 h-3 rounded-sm transition-all duration-300 cursor-pointer hover:ring-1 hover:ring-white/30",
+                                        !isCurrentYear && "opacity-0 pointer-events-none",
                                         value === 0 && isCurrentYear && "bg-white/5",
                                         !color && value === 1 && "bg-primary/40 shadow-[0_0_8px_rgba(59,130,246,0.3)]",
                                         !color && value === 2 && "bg-primary/70 shadow-[0_0_12px_rgba(59,130,246,0.5)]",
                                         !color && value >= 3 && "bg-primary shadow-[0_0_15px_rgba(59,130,246,0.7)]",
-                                        isToday(day) && "ring-1 ring-white"
+                                        isToday(day) && "ring-1 ring-white/50",
+                                        isSelected && "ring-2 ring-white shadow-[0_0_15px_rgba(255,255,255,0.5)] z-10"
                                     )}
                                     style={color && value > 0 ? {
                                         ...getIntensityStyle(Math.min(value, 3)),
-                                        boxShadow: `0 0 ${value * 4}px ${color}${Math.min(value * 20, 80)}`
+                                        boxShadow: isSelected
+                                            ? `0 0 15px ${color}`
+                                            : `0 0 ${value * 4}px ${color}${Math.min(value * 20, 80)}`
                                     } : {}}
                                     title={`${format(day, 'MMM do')}: ${value} activities`}
                                 />
@@ -129,3 +136,4 @@ export function Heatmap({ data, color }: HeatmapProps) {
         </div>
     );
 }
+
